@@ -10,7 +10,7 @@ save_user(ClientPid, User) ->
                           User),
     riakc_pb_socket:put(ClientPid, RUser).
 
--spec get_user(pid(), user_name()) -> user().
+-spec get_user(pid(), user_id()) -> user().
 get_user(ClientPid, UserName) -> 
     {ok, RUser} = riakc_pb_socket:get(ClientPid, 
                                       ?USER_BUCKET, 

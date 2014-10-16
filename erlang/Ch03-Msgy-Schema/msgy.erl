@@ -4,22 +4,20 @@
 
 main() ->
   %% Setup our repositories
-  {ok, Pid} = riakc_pb_socket:start_link("127.0.0.1", 10017),
+  {ok, Pid} = riakc_pb_socket:start_link("127.0.0.1", 8087),
 
   %% Create and save users
-  Joe = #user{user_name="joeuser",
-              full_name="Joe User",
-              email="joe.user@basho.com"},
+  Joe = #user{user_id="joeuser",
+              nick_name="Joe User"},
 
-  Marleen = #user{user_name="marleenmgr",
-                  full_name="Marleen Manager",
-                  email="marleen.manager@basho.com"},
+  Marleen = #user{user_id="marleenmgr",
+                  nick_name="Marleen Manager"},
 
   user_repository:save_user(Pid, Joe),
   user_repository:save_user(Pid, Marleen),
 
   %% Create new Msg, post to timelines
-  Msg = msg_repository:create_msg(Marleen#user.user_name, Joe#user.user_name, "Welcome to the company!"),
+  Msg = msg_repository:create_msg(Marleen#user.user_id, Joe#user.user_id, 'private', "Welcome to the company!"),
   timeline_repository:post_msg(Pid, Msg),
 
 

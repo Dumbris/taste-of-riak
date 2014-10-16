@@ -17,7 +17,7 @@ post_msg(ClientPid, Msg) ->
     ok.
 
 -spec get_timeline(pid(), 
-               user_name(),
+               user_id(),
                msg_type(),
                date()) -> timeline().
 get_timeline(ClientPid, Owner, MsgType, Date) -> 
@@ -84,7 +84,7 @@ add_to_existing_timeline(ExistingRiakObj, MsgKey) ->
     riakc_obj:update_value(ExistingRiakObj, UpdatedTimeline).
 
 %% @private 
--spec get_owner(msg(), msg_type()) -> user_name().
+-spec get_owner(msg(), msg_type()) -> user_id().
 get_owner(Msg, inbox) ->  Msg#msg.recipient;
 get_owner(Msg, sent) ->  Msg#msg.sender.
 
@@ -95,7 +95,7 @@ generate_key_from_msg(Msg, MsgType) ->
     generate_key(Owner, MsgType, Msg#msg.created).
 
 %% @private
--spec generate_key(user_name(), msg_type(), date()|datetimestamp()) -> key_string().
+-spec generate_key(user_id(), msg_type(), date()|datetimestamp()) -> key_string().
 generate_key(Owner, MsgType, Date) when is_tuple(Date) ->
     DateString = get_iso_datestamp_from_date(Date),
     generate_key(Owner, MsgType, DateString);

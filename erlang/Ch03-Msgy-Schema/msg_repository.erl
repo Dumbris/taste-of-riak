@@ -1,12 +1,13 @@
 -module(msg_repository).
--export([create_msg/3, 
+-export([create_msg/4,
          get_msg/2]).
 -include("msgy.hrl").
 
--spec create_msg(user_name(), user_name(), text()) -> msg().
-create_msg(Sender, Recipient, Text) ->
+-spec create_msg(user_id(), user_id(), content_type(), text()) -> msg().
+create_msg(Sender, Recipient, Content_type, Text) ->
     #msg{sender=Sender,
          recipient=Recipient,
+         content_type = Content_type,
          created=get_current_iso_timestamp(),
          text = Text}.
 
