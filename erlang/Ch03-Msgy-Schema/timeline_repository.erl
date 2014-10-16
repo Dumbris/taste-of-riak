@@ -18,12 +18,12 @@ post_msg(ClientPid, Msg) ->
 
 -spec get_timeline(pid(), 
                user_id(),
-               msg_type(),
+               content_type(),
                date()) -> timeline().
-get_timeline(ClientPid, Owner, MsgType, Date) -> 
-    TimelineKey = generate_key(Owner, MsgType, Date),
+get_timeline(ClientPid, Owner, ContentType, Date) ->
+    TimelineKey = generate_key(Owner, ContentType, Date),
     {ok, RTimeline} = riakc_pb_socket:get(ClientPid, 
-                                          ?TIMELINE_BUCKET, 
+                                          ?CHANNEL_TIMELINE_BUCKET,
                                           list_to_binary(TimelineKey)),
     binary_to_term(riakc_obj:get_value(RTimeline)).
 
@@ -48,15 +48,15 @@ save_msg(ClientPid, Msg) ->
     SavedMsg.
 
 %% @private
--spec add_to_timeline(pid(), msg(), msg_type(), key_string()) -> riakc_obj:riakc_obj().
-add_to_timeline(ClientPid, Msg, MsgType, MsgKey) ->
-    TimelineKey = generate_key_from_msg(Msg, MsgType),
+-spec add_to_timeline(pid(), msg(), content_type(), key_string()) -> riakc_obj:riakc_obj().
+add_to_timeline(ClientPid, Msg, ContentType, MsgKey) ->
+    TimelineKey = generate_key_from_msg(Msg, ContentType),
     ExistingTimeline = riakc_pb_socket:get(ClientPid, 
                                            ?TIMELINE_BUCKET, 
                                            list_to_binary(TimelineKey)),
     UpdatedTimeline = case ExistingTimeline of
         {error, notfound} ->
-            create_new_timeline(Msg, MsgType, MsgKey, TimelineKey);
+            create_new_timeline(Msg, ContentType, MsgKey, TimelineKey);
         {ok, Existing} -> 
             add_to_existing_timeline(Existing, MsgKey)
     end,
@@ -67,11 +67,11 @@ add_to_timeline(ClientPid, Msg, MsgType, MsgKey) ->
     SavedTimeline.
 
 %% @private
--spec create_new_timeline(msg(), msg_type(), key_string(), key_string()) -> riakc_obj:riakc_obj().
-create_new_timeline(Msg, MsgType, MsgKey, TimelineKey) ->
-    Owner = get_owner(Msg, MsgType),
+-spec create_new_timeline(msg(), content_type(), key_string(), key_string()) -> riakc_obj:riakc_obj().
+create_new_timeline(Msg, ContentType, MsgKey, TimelineKey) ->
+    Owner = get_owner(Msg, ContentType),
     Timeline = #timeline{owner=Owner,
-                         msg_type=MsgType,
+                         content_type= ContentType,
                          msgs=[MsgKey]},
     riakc_obj:new(?TIMELINE_BUCKET, list_to_binary(TimelineKey), Timeline).
 
@@ -84,29 +84,31 @@ add_to_existing_timeline(ExistingRiakObj, MsgKey) ->
     riakc_obj:update_value(ExistingRiakObj, UpdatedTimeline).
 
 %% @private 
--spec get_owner(msg(), msg_type()) -> user_id().
+-spec get_owner(msg(), content_type()) -> user_id().
 get_owner(Msg, inbox) ->  Msg#msg.recipient;
 get_owner(Msg, sent) ->  Msg#msg.sender.
 
 %% @private
--spec generate_key_from_msg(msg(), msg_type()) -> key_string().
-generate_key_from_msg(Msg, MsgType) ->
-    Owner = get_owner(Msg, MsgType),
-    generate_key(Owner, MsgType, Msg#msg.created).
+-spec generate_key_from_msg(msg(), content_type()) -> key_string().
+generate_key_from_msg(Msg, ContentType) ->
+    Owner = get_owner(Msg, ContentType),
+    generate_key(Owner, ContentType, Msg#msg.created).
 
 %% @private
--spec generate_key(user_id(), msg_type(), date()|datetimestamp()) -> key_string().
-generate_key(Owner, MsgType, Date) when is_tuple(Date) ->
+-spec generate_key(user_id(), content_type(), date()|datetimestamp()) -> key_string().
+generate_key(Owner, ContentType, Date) when is_tuple(Date) ->
     DateString = get_iso_datestamp_from_date(Date),
-    generate_key(Owner, MsgType, DateString);
+    generate_key(Owner, ContentType, DateString);
 
-generate_key(Owner, MsgType, Datetimestamp) ->
+generate_key(Owner, ContentType, Datetimestamp) ->
     DateString = get_iso_datestamp_from_iso_timestamp(Datetimestamp),
-    MsgTypeString = case MsgType of
-        inbox -> ?INBOX;
-        sent -> ?SENT
-    end,
-    Owner ++ "_" ++ MsgTypeString ++ "_" ++ DateString.
+    Owner ++ "_" ++ ContentTypeString ++ "_" ++ DateString.
+
+%% @private
+-spec get_content_type(content_type()) -> nonempty_string().
+get_content_type(private) -> ?PRIVATE;
+get_content_type(public) -> ?PUBLIC;
+get_content_type(private) -> ?PRIVATE;
 
 %% @private 
 -spec get_iso_datestamp_from_date(date()) -> nonempty_string().
